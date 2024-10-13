@@ -38,7 +38,7 @@ public class FilmBot extends TelegramLongPollingBot {
         }
         log.trace(update.toString());
         String command = update.getMessage().getText();
-        if (command.equals(ROLL_FILM)) {
+        if (command.equals(ROLL_FILM) || command.equals(ROLL_FILM + "@" + botUsername)) {
             sendMessage(update.getMessage().getChatId(), filmBotService.getRandomFilm());
         } else if (command.contains("https://www.kinopoisk.ru/film/")) {
             sendMessage(update.getMessage().getChatId(), filmBotService.addFilm(command, update.getMessage().getFrom().getId(), update.getMessage().getFrom().getUserName()));
