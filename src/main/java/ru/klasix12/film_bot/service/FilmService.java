@@ -14,4 +14,5 @@ public interface FilmService {
 
     void remove(Film film);
     List<Film> getFilmsByGenre(String genre);
+    List<String> getGenres();
 }

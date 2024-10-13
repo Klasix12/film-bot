@@ -13,7 +13,7 @@ import java.util.Optional;
 @Service
 public class FilmServiceImpl implements FilmService {
     private final FilmRepository filmRepository;
-    private static final List<String> GENRES = Collections.unmodifiableList(Arrays.asList(
+    protected static final List<String> GENRES = Collections.unmodifiableList(Arrays.asList(
             "комедия",
             "мультфильм",
             "ужас",
@@ -71,5 +71,10 @@ public class FilmServiceImpl implements FilmService {
     @Override
     public List<Film> getFilmsByGenre(String genre) {
         return filmRepository.findAllByGenre(genre);
+    }
+
+    @Override
+    public List<String> getGenres() {
+        return GENRES;
     }
 }

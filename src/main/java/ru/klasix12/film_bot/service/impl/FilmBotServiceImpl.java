@@ -36,9 +36,9 @@ public class FilmBotServiceImpl implements FilmBotService {
         if (film.isEmpty()) {
             return "Такого фильма не существует";
         } else if (film.get().getRatingKinopoisk() < 7) {
-            return "Слишком низкий рейтинг кинопоиска: " + film.get().getRatingKinopoisk();
+            return film.get().getNameRu() + " слишком низкий рейтинг кинопоиска: " + film.get().getRatingKinopoisk();
         } else if (film.get().getRatingImdb() < 7) {
-            return "Слишком низкий рейтинг IMDb: " + film.get().getRatingImdb();
+            return film.get().getNameRu() + " слишком низкий рейтинг IMDb: " + film.get().getRatingImdb();
         }
         User user = userService.getUserById(userId).orElse(User.builder()
                 .username(username)
@@ -97,7 +97,7 @@ public class FilmBotServiceImpl implements FilmBotService {
         }
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < films.size(); i++) {
-            sb.append(i + 1).append(") ").append(films.get(i).getNameRu());
+            sb.append(i + 1).append(") ").append(films.get(i).getNameRu()).append("\n");
         }
         return sb.toString();
     }
@@ -111,6 +111,11 @@ public class FilmBotServiceImpl implements FilmBotService {
         Film film = films.get(random.nextInt(films.size()));
         filmService.remove(film);
         return formatFilm(film);
+    }
+
+    @Override
+    public String getGenres() {
+        return String.join(", ", filmService.getGenres());
     }
 
     private String formatFilm(Film film) {

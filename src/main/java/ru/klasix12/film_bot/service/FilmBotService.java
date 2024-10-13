@@ -7,4 +7,5 @@ public interface FilmBotService {
     String getRandomFilm();
     String findAllByGenre(String genre);
     String getRandomFilmByGenre(String genre);
+    String getGenres();
 }

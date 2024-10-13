@@ -22,6 +22,7 @@ import java.util.Optional;
 public class KinopoiskApiServiceImpl implements KinopoiskApiService {
 
     private static final String DEFAULT_URI = "https://kinopoiskapiunofficial.tech/api/v2.2/films";
+    private static final String KINOPOISK_URI = "https://www.kinopoisk.ru/film/";
     private final String apiKey;
     private final RestTemplate restTemplate;
 
@@ -53,7 +54,7 @@ public class KinopoiskApiServiceImpl implements KinopoiskApiService {
                     .ratingKinopoisk(jsonNode.get("ratingKinopoisk").asDouble())
                     .ratingImdb(jsonNode.get("ratingImdb").asDouble())
                     .description(jsonNode.get("description").asText())
-                    .url(uri)
+                    .url(KINOPOISK_URI + filmId + "/")
                     .genres(extractGenres(jsonNode))
                     .build();
             return Optional.of(film);

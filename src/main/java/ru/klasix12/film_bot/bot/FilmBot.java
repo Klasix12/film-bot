@@ -24,6 +24,7 @@ public class FilmBot extends TelegramLongPollingBot {
     private static final String ROLL_FILM = "/roll_film";
     private static final String FILMS = "/films";
     private static final String HELP = "/help";
+    private static final String GENRES = "/genres";
     private final FilmBotService filmBotService;
 
     public FilmBot(@Value("${bot.token}") String botToken, @Value("${bot.username}") String botUsername, FilmBotService filmBotService) {
@@ -48,7 +49,7 @@ public class FilmBot extends TelegramLongPollingBot {
         } else if (command.contains("https://www.kinopoisk.ru/film/")) {
             sendMessage(update.getMessage().getChatId(), filmBotService.addFilm(command, update.getMessage().getFrom().getId(), update.getMessage().getFrom().getUserName()));
             removeMessage(update.getMessage().getChatId(), update.getMessage().getMessageId());
-        } else if (command.equals(FILMS)) {
+        } else if (command.equals(FILMS) || command.equals(FILMS + "@" + botUsername)) {
             sendMessage(update.getMessage().getChatId(), filmBotService.findAll());
         } else if (command.split(" ").length == 2 && command.contains(FILMS)) {
             String genre = command.split(" ")[1];
@@ -59,8 +60,10 @@ public class FilmBot extends TelegramLongPollingBot {
                     /roll_film <жанр> - получение случайного фильма указанного жанра
                     /films - получение списка всех фильмов
                     /films <жанр> - получение всех фильмов указанного жанра
-                    /info @Username - получение фильмов, добавленных пользователем
+                    /genres - жанры
                     """);
+        } else if (command.equals(GENRES) || command.equals(GENRES + "@" + botUsername)) {
+            sendMessage(update.getMessage().getChatId(), filmBotService.getGenres());
         }
     }
 
@@ -92,6 +95,7 @@ public class FilmBot extends TelegramLongPollingBot {
         botCommandList.add(new BotCommand(ROLL_FILM, "Получить случайный фильм"));
         botCommandList.add(new BotCommand(FILMS, "Получить список всех фильмов"));
         botCommandList.add(new BotCommand(HELP, "Получить информацию о боте"));
+        botCommandList.add(new BotCommand(GENRES, "Получить список жанров"));
         try {
             this.execute(new SetMyCommands(botCommandList, new BotCommandScopeDefault(), null));
         } catch (TelegramApiException e) {
