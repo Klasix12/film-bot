@@ -22,6 +22,8 @@ public class FilmBot extends TelegramLongPollingBot {
 
     private final String botUsername;
     private static final String ROLL_FILM = "/roll_film";
+    private static final String FILMS = "/films";
+    private static final String HELP = "/help";
     private final FilmBotService filmBotService;
 
     public FilmBot(@Value("${bot.token}") String botToken, @Value("${bot.username}") String botUsername, FilmBotService filmBotService) {
@@ -38,11 +40,27 @@ public class FilmBot extends TelegramLongPollingBot {
         }
         log.trace(update.toString());
         String command = update.getMessage().getText();
-        if (command.equals(ROLL_FILM)) {
+        if (command.equals(ROLL_FILM) || command.equals(ROLL_FILM + "@" + botUsername)) {
             sendMessage(update.getMessage().getChatId(), filmBotService.getRandomFilm());
+        } else if (command.split(" ").length == 2 && command.contains(ROLL_FILM)) {
+            String genre = command.split(" ")[1];
+            sendMessage(update.getMessage().getChatId(), filmBotService.getRandomFilmByGenre(genre));
         } else if (command.contains("https://www.kinopoisk.ru/film/")) {
             sendMessage(update.getMessage().getChatId(), filmBotService.addFilm(command, update.getMessage().getFrom().getId(), update.getMessage().getFrom().getUserName()));
             removeMessage(update.getMessage().getChatId(), update.getMessage().getMessageId());
+        } else if (command.equals(FILMS)) {
+            sendMessage(update.getMessage().getChatId(), filmBotService.findAll());
+        } else if (command.split(" ").length == 2 && command.contains(FILMS)) {
+            String genre = command.split(" ")[1];
+            sendMessage(update.getMessage().getChatId(), filmBotService.findAllByGenre(genre));
+        } else if (command.equals(HELP) || command.equals(HELP + "@" + botUsername)) {
+            sendMessage(update.getMessage().getChatId(), """
+                    /roll_film - получить случайный фильм из всего списка фильмов
+                    /roll_film <жанр> - получение случайного фильма указанного жанра
+                    /films - получение списка всех фильмов
+                    /films <жанр> - получение всех фильмов указанного жанра
+                    /info @Username - получение фильмов, добавленных пользователем
+                    """);
         }
     }
 
@@ -72,6 +90,8 @@ public class FilmBot extends TelegramLongPollingBot {
     private void registerBotCommand() {
         List<BotCommand> botCommandList = new ArrayList<>();
         botCommandList.add(new BotCommand(ROLL_FILM, "Получить случайный фильм"));
+        botCommandList.add(new BotCommand(FILMS, "Получить список всех фильмов"));
+        botCommandList.add(new BotCommand(HELP, "Получить информацию о боте"));
         try {
             this.execute(new SetMyCommands(botCommandList, new BotCommandScopeDefault(), null));
         } catch (TelegramApiException e) {

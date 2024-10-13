@@ -1,5 +1,8 @@
 package ru.klasix12.film_bot.service.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -10,6 +13,8 @@ import org.springframework.web.client.RestTemplate;
 import ru.klasix12.film_bot.model.Film;
 import ru.klasix12.film_bot.service.KinopoiskApiService;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 
@@ -38,11 +43,30 @@ public class KinopoiskApiServiceImpl implements KinopoiskApiService {
 
         HttpEntity<String> entity = new HttpEntity<>(headers);
         try {
-            Film response = restTemplate.exchange(uri, HttpMethod.GET, entity, Film.class).getBody();
-            response.setUrl(uri);
-            return Optional.of(response);
-        } catch (HttpClientErrorException | NullPointerException e) {
+            String response = restTemplate.exchange(uri, HttpMethod.GET, entity, String.class).getBody();
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode jsonNode = objectMapper.readTree(response);
+
+            Film film = Film.builder()
+                    .kinopoiskId(jsonNode.get("kinopoiskId").asLong())
+                    .nameRu(jsonNode.get("nameRu").asText())
+                    .ratingKinopoisk(jsonNode.get("ratingKinopoisk").asDouble())
+                    .ratingImdb(jsonNode.get("ratingImdb").asDouble())
+                    .description(jsonNode.get("description").asText())
+                    .url(uri)
+                    .genres(extractGenres(jsonNode))
+                    .build();
+            return Optional.of(film);
+        } catch (HttpClientErrorException | JsonProcessingException | NullPointerException e) {
             return Optional.empty();
         }
+    }
+
+    private String extractGenres(JsonNode jsonNode) {
+        List<String> genres = new ArrayList<>();
+        for (JsonNode genre : jsonNode.get("genres")) {
+            genres.add(genre.get("genre").toString().replaceAll("\"", ""));
+        }
+        return String.join(", ", genres);
     }
 }
