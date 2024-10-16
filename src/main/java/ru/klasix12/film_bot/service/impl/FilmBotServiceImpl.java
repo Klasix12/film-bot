@@ -1,30 +1,30 @@
 package ru.klasix12.film_bot.service.impl;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import ru.klasix12.film_bot.model.CurrentFilm;
 import ru.klasix12.film_bot.model.Film;
 import ru.klasix12.film_bot.model.User;
+import ru.klasix12.film_bot.repository.CurrentFilmRepository;
 import ru.klasix12.film_bot.service.FilmBotService;
 import ru.klasix12.film_bot.service.FilmService;
 import ru.klasix12.film_bot.service.KinopoiskApiService;
 import ru.klasix12.film_bot.service.UserService;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 
 @Service
+@RequiredArgsConstructor
 public class FilmBotServiceImpl implements FilmBotService {
 
     private final KinopoiskApiService kinopoiskApiService;
     private final UserService userService;
     private final FilmService filmService;
+    private final CurrentFilmService currentFilmService;
     private final Random random = new Random();
-
-    public FilmBotServiceImpl(KinopoiskApiService kinopoiskApiService, UserService userService, FilmService filmService) {
-        this.kinopoiskApiService = kinopoiskApiService;
-        this.userService = userService;
-        this.filmService = filmService;
-    }
 
     @Override
     public String addFilm(String uri, long userId, String username) {
@@ -55,13 +55,15 @@ public class FilmBotServiceImpl implements FilmBotService {
                         Оценка кинопоиск: %s
                         Оценка IMDb: %s
                         Жанры: %s
-                        Описание: %s""",
+                        Описание: %s
+                        Ссылка: %s""",
                 user.getUsername(),
                 film.get().getNameRu(),
                 film.get().getRatingKinopoisk(),
                 film.get().getRatingImdb(),
                 film.get().getGenres(),
-                film.get().getDescription());
+                film.get().getDescription(),
+                film.get().getUrl());
     }
 
     @Override
@@ -84,9 +86,20 @@ public class FilmBotServiceImpl implements FilmBotService {
         if (films.size() <= 0) {
             return "Список фильмов пуст";
         }
-        Film film = films.get(random.nextInt(films.size()));
-        filmService.remove(film);
-        return formatFilm(film);
+        CurrentFilm currentFilm = currentFilmService.findCurrentFilm();
+        if (currentFilm != null && currentFilm.getDate().equals(LocalDate.now())) {
+            return "Вы уже ролили фильм сегодня: " + currentFilm.getFilm().getNameRu() + ".\nДля реролла используйте команду /reroll";
+        } else {
+            currentFilmService.removeCurrentFilm();
+            Film film = films.get(random.nextInt(films.size()));
+            film.setViewed(true);
+            filmService.save(film);
+            currentFilmService.save(CurrentFilm.builder()
+                    .date(LocalDate.now())
+                    .film(film)
+                    .build());
+            return formatFilm(film);
+        }
     }
 
     @Override
@@ -116,6 +129,54 @@ public class FilmBotServiceImpl implements FilmBotService {
     @Override
     public String getGenres() {
         return String.join(", ", filmService.getGenres());
+    }
+
+    @Override
+    public String removeFilm(String filmName) {
+        Optional<Film> film = filmService.findByName(filmName);
+        if (film.isEmpty())
+            return "Фильма " + filmName + " нет в списке фильмов";
+        filmService.remove(film.get());
+        return "Фильм " + filmName + " удален из списка";
+    }
+
+    @Override
+    public String getFilmByName(String filmName) {
+        Optional<Film> film = filmService.findByName(filmName);
+        if (film.isEmpty())
+            return "Фильма " + filmName + " нет в списке фильмов";
+        return String.format("""
+                        %s
+                        Оценка кинопоиск: %s
+                        Оценка IMDb: %s
+                        Жанры: %s
+                        Описание: %s
+                        Ссылка: %s
+                        """,
+                film.get().getNameRu(),
+                film.get().getRatingKinopoisk(),
+                film.get().getRatingImdb(),
+                film.get().getGenres(),
+                film.get().getDescription(),
+                film.get().getUrl());
+    }
+
+    @Override
+    public String rerollFilm(String username) {
+        CurrentFilm currentFilm = currentFilmService.findCurrentFilm();
+        if (currentFilm == null || !currentFilm.getDate().equals(LocalDate.now())) {
+            return "Вы еще не роллили фильм сегодня";
+        }
+        List<Film> films = filmService.findAll();
+        currentFilmService.removeCurrentFilm();
+        Film film = films.get(random.nextInt(films.size()));
+        film.setViewed(true);
+        filmService.save(film);
+        currentFilmService.save(CurrentFilm.builder()
+                .date(LocalDate.now())
+                .film(film)
+                .build());
+        return formatFilm(film);
     }
 
     private String formatFilm(Film film) {

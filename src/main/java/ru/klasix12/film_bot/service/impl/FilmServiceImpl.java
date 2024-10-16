@@ -77,4 +77,9 @@ public class FilmServiceImpl implements FilmService {
     public List<String> getGenres() {
         return GENRES;
     }
+
+    @Override
+    public Optional<Film> findByName(String filmName) {
+        return filmRepository.findByNameRuIgnoreCase(filmName);
+    }
 }

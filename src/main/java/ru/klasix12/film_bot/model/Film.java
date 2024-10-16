@@ -24,4 +24,5 @@ public class Film {
     private String genres;
     @ManyToOne
     private User user;
+    private boolean viewed;
 }
