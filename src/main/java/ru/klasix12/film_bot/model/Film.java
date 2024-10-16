@@ -21,6 +21,8 @@ public class Film {
     @Column(columnDefinition = "TEXT")
     private String description;
     private String url;
+    private String genres;
     @ManyToOne
     private User user;
+    private boolean viewed;
 }

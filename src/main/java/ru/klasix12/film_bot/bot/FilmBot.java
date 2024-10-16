@@ -22,6 +22,12 @@ public class FilmBot extends TelegramLongPollingBot {
 
     private final String botUsername;
     private static final String ROLL_FILM = "/roll_film";
+    private static final String FILMS = "/films";
+    private static final String HELP = "/help";
+    private static final String GENRES = "/genres";
+    private static final String REMOVE = "/remove";
+    private static final String INFO = "/info";
+    private static final String REROLL = "/reroll";
     private final FilmBotService filmBotService;
 
     public FilmBot(@Value("${bot.token}") String botToken, @Value("${bot.username}") String botUsername, FilmBotService filmBotService) {
@@ -37,18 +43,51 @@ public class FilmBot extends TelegramLongPollingBot {
             return;
         }
         log.trace(update.toString());
+        
         String command = update.getMessage().getText();
+        long chatId = update.getMessage().getChatId();
+
         if (command.equals(ROLL_FILM) || command.equals(ROLL_FILM + "@" + botUsername)) {
-            sendMessage(update.getMessage().getChatId(), filmBotService.getRandomFilm());
+            sendMessage(chatId, filmBotService.getRandomFilm());
+        } else if (command.split(" ").length == 2 && command.contains(ROLL_FILM)) {
+            String genre = command.split(" ")[1];
+            sendMessage(chatId, filmBotService.getRandomFilmByGenre(genre));
         } else if (command.contains("https://www.kinopoisk.ru/film/")) {
-            sendMessage(update.getMessage().getChatId(), filmBotService.addFilm(command, update.getMessage().getFrom().getId(), update.getMessage().getFrom().getUserName()));
-            removeMessage(update.getMessage().getChatId(), update.getMessage().getMessageId());
+            sendMessage(chatId, filmBotService.addFilm(command, update.getMessage().getFrom().getId(), update.getMessage().getFrom().getUserName()));
+            removeMessage(chatId, update.getMessage().getMessageId());
+        } else if (command.equals(FILMS) || command.equals(FILMS + "@" + botUsername)) {
+            sendMessage(chatId, filmBotService.findAll());
+        } else if (command.split(" ").length == 2 && command.contains(FILMS)) {
+            String genre = command.split(" ")[1];
+            sendMessage(chatId, filmBotService.findAllByGenre(genre));
+        } else if (command.equals(HELP) || command.equals(HELP + "@" + botUsername)) {
+            sendMessage(chatId, """
+                    /roll_film - получить случайный фильм из всего списка фильмов
+                    /roll_film <жанр> - получение случайного фильма указанного жанра
+                    /films - получение списка всех фильмов
+                    /films <жанр> - получение всех фильмов указанного жанра
+                    /genres - жанры
+                    """);
+        } else if (command.contains(GENRES)) {
+            sendMessage(chatId, filmBotService.getGenres());
+        } else if (command.split(" ").length > 1 && command.contains(REMOVE)) {
+            String filmName = extractFilmName(command, REMOVE);
+            sendMessage(chatId, filmBotService.removeFilm(filmName));
+        } else if (command.split(" ").length > 1 && command.contains(INFO)) {
+            String filmName = extractFilmName(command, INFO);
+            sendMessage(chatId, filmBotService.getFilmByName(filmName));
+        } else if (command.contains(REROLL)) {
+            sendMessage(chatId, filmBotService.rerollFilm(update.getMessage().getFrom().getUserName()));
         }
     }
 
     @Override
     public String getBotUsername() {
         return botUsername;
+    }
+
+    private String extractFilmName(String messageText, String command) {
+        return messageText.substring(messageText.contains("@") ? command.length() + botUsername.length() + 2 : command.length() + 1);
     }
 
     private void sendMessage(long chatId, String message) {
@@ -72,6 +111,12 @@ public class FilmBot extends TelegramLongPollingBot {
     private void registerBotCommand() {
         List<BotCommand> botCommandList = new ArrayList<>();
         botCommandList.add(new BotCommand(ROLL_FILM, "Получить случайный фильм"));
+        botCommandList.add(new BotCommand(FILMS, "Получить список всех фильмов"));
+        botCommandList.add(new BotCommand(HELP, "Получить информацию о боте"));
+        botCommandList.add(new BotCommand(GENRES, "Получить список жанров"));
+        botCommandList.add(new BotCommand(INFO, "Получить информацию о фильме"));
+        botCommandList.add(new BotCommand(REMOVE, "Удалить фильм"));
+        botCommandList.add(new BotCommand(REROLL, "Реролл фильма"));
         try {
             this.execute(new SetMyCommands(botCommandList, new BotCommandScopeDefault(), null));
         } catch (TelegramApiException e) {

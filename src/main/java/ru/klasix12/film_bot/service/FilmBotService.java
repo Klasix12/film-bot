@@ -5,4 +5,10 @@ public interface FilmBotService {
 
     String findAll();
     String getRandomFilm();
+    String findAllByGenre(String genre);
+    String getRandomFilmByGenre(String genre);
+    String getGenres();
+    String removeFilm(String filmName);
+    String getFilmByName(String filmName);
+    String rerollFilm(String username);
 }
